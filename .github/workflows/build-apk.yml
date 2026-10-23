@@ -15,21 +15,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Setup Java
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Gradle
+      - name: Setup Gradle 8.11.1
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
+          gradle-version: '8.11.1'
 
-      - name: Extract Android source
+      - name: Check Android SDK
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls -la "$ANDROID_HOME"
+          ls -la "$ANDROID_HOME/platforms"
+
+      - name: Extract Android Source
         run: |
           mkdir -p extracted
           unzip -q ExpiredExchange_v1_OneUpload.zip -d extracted
@@ -38,11 +44,15 @@ jobs:
       - name: Build APK
         working-directory: extracted/ExpiredExchange_v1_OneUpload
         run: |
-          gradle --no-daemon assembleDebug --stacktrace
+          gradle --version
+          gradle --no-daemon --console=plain \
+            assembleDebug --stacktrace
 
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: ExpiredExchange-APK
           path: extracted/ExpiredExchange_v1_OneUpload/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+          retention-days: 30
